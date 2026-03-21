@@ -29,9 +29,15 @@ class _VideosScreenState extends State<VideosScreen> {
 
   final List<String> _cats = ['الكل', 'مقدمة', 'قيود', 'دفتر الأستاذ', 'القوائم', 'كورس كامل'];
 
+  Future<void> _loadWatched() async {
+    final p = await SharedPreferences.getInstance();
+    if (mounted) setState(() => _watched = p.getStringList('watchedVids') ?? []);
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadWatched();
     _loadPrefs();
     _watched = _prefs?.getStringList('watchedVids') ?? const [];
   }
