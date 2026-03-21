@@ -8,12 +8,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   final prefs = await SharedPreferences.getInstance();
-  runApp(AccountingApp(prefs: prefs));
+  final isDark = prefs.getBool('darkMode') ?? false;
+  runApp(AccountingApp(isDark: isDark));
 }
 
 class AccountingApp extends StatefulWidget {
-  final SharedPreferences prefs;
-  const AccountingApp({super.key, required this.prefs});
+  final bool isDark;
+  const AccountingApp({super.key, required this.isDark});
   @override
   State<AccountingApp> createState() => _AccountingAppState();
 }
@@ -24,14 +25,13 @@ class _AccountingAppState extends State<AccountingApp> {
   @override
   void initState() {
     super.initState();
-    _isDark = widget.prefs.getBool('darkMode') ?? false;
+    _isDark = widget.isDark;
   }
 
-  void toggleTheme() {
-    setState(() {
-      _isDark = !_isDark;
-      widget.prefs.setBool('darkMode', _isDark);
-    });
+  void toggleTheme() async {
+    setState(() => _isDark = !_isDark);
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('darkMode', _isDark);
   }
 
   @override
@@ -43,7 +43,7 @@ class _AccountingAppState extends State<AccountingApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       builder: (context, child) => Directionality(textDirection: TextDirection.rtl, child: child!),
-      home: HomeScreen(isDark: _isDark, onToggleTheme: toggleTheme, prefs: widget.prefs),
+      home: HomeScreen(isDark: _isDark, onToggleTheme: toggleTheme),
     );
   }
 }
