@@ -12,6 +12,11 @@ class VideosScreen extends StatefulWidget {
 }
 
 class _VideosScreenState extends State<VideosScreen> {
+  Future<void> _loadData() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() { _watchedVids = prefs.getStringList('watchedVids') ?? []; });
+  }
   SharedPreferences? _prefs;
 
   Future<void> _loadPrefs() async {
