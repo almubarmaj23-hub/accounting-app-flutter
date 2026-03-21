@@ -5,26 +5,32 @@ import '../data/app_data.dart';
 import 'lesson_detail_screen.dart';
 
 class LessonsScreen extends StatefulWidget {
-  final SharedPreferences prefs;
-  const LessonsScreen({super.key, required this.prefs});
+  const LessonsScreen({super.key});
   @override
   State<LessonsScreen> createState() => _LessonsScreenState();
 }
 
 class _LessonsScreenState extends State<LessonsScreen> {
+  SharedPreferences? _prefs;
+
+  Future<void> _loadPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() {});
+  }
   List<String> _readLessons = [];
 
   @override
   void initState() {
     super.initState();
-    _readLessons = widget.prefs.getStringList('readLessons') ?? [];
+    _loadPrefs();
+    _readLessons = _prefs?.getStringList('readLessons') ?? const [];
   }
 
   void _markRead(int id) {
     final key = id.toString();
     if (!_readLessons.contains(key)) {
       setState(() { _readLessons.add(key); });
-      widget.prefs.setStringList('readLessons', _readLessons);
+      _prefs?.setStringList('readLessons', _readLessons);
     }
   }
 
