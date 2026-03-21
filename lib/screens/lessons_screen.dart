@@ -67,7 +67,7 @@ class _LessonsScreenState extends State<LessonsScreen> {
                     child: Center(child: Text(lesson['icon'], style: const TextStyle(fontSize: 22))),
                   ),
                   title: Text(lesson['title'], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                  subtitle: Text('\${(lesson['sections'] as List).length} أقسام', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                  subtitle: (() { final cnt = (lesson['sections'] as List).length; return Text('$cnt أقسام', style: TextStyle(color: Colors.grey[600], fontSize: 12)); })(),
                   trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                     if (isRead) const Icon(Icons.check_circle, color: Colors.green, size: 20),
                     const SizedBox(width: 4),
