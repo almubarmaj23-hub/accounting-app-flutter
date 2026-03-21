@@ -6,13 +6,18 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../data/app_data.dart';
 
 class VideosScreen extends StatefulWidget {
-  final SharedPreferences prefs;
-  const VideosScreen({super.key, required this.prefs});
+  const VideosScreen({super.key});
   @override
   State<VideosScreen> createState() => _VideosScreenState();
 }
 
 class _VideosScreenState extends State<VideosScreen> {
+  SharedPreferences? _prefs;
+
+  Future<void> _loadPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() {});
+  }
   String _selectedCat = 'الكل';
   List<String> _watched = [];
   String _search = '';
@@ -22,7 +27,8 @@ class _VideosScreenState extends State<VideosScreen> {
   @override
   void initState() {
     super.initState();
-    _watched = widget.prefs.getStringList('watchedVids') ?? [];
+    _loadPrefs();
+    _watched = _prefs?.getStringList('watchedVids') ?? const [];
   }
 
   Future<void> _openVideo(Map video) async {
@@ -32,7 +38,7 @@ class _VideosScreenState extends State<VideosScreen> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!_watched.contains(id)) {
         setState(() => _watched.add(id));
-        widget.prefs.setStringList('watchedVids', _watched);
+        _prefs?.setStringList('watchedVids', _watched);
       }
     }
   }
