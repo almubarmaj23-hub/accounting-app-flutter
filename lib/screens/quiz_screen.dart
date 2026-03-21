@@ -4,13 +4,18 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../data/app_data.dart';
 
 class QuizScreen extends StatefulWidget {
-  final SharedPreferences prefs;
-  const QuizScreen({super.key, required this.prefs});
+  const QuizScreen({super.key});
   @override
   State<QuizScreen> createState() => _QuizScreenState();
 }
 
 class _QuizScreenState extends State<QuizScreen> {
+  SharedPreferences? _prefs;
+
+  Future<void> _loadPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    if (mounted) setState(() {});
+  }
   int _current = 0;
   int _score = 0;
   int? _selected;
@@ -35,8 +40,8 @@ class _QuizScreenState extends State<QuizScreen> {
     } else {
       setState(() => _finished = true);
       final pct = (_score / _questions.length * 100).round();
-      final prev = widget.prefs.getInt('quizBestScore') ?? 0;
-      if (pct > prev) widget.prefs.setInt('quizBestScore', pct);
+      final prev = _prefs?.getInt('quizBestScore') ?? 0;
+      if (pct > prev) _prefs?.setInt('quizBestScore', pct);
     }
   }
 
