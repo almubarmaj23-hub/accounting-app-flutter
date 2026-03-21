@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'lessons_screen.dart';
-import 'glossary_screen.dart';
-import 'calculator_screen.dart';
-import 'exercises_screen.dart';
 import 'videos_screen.dart';
 import 'quiz_screen.dart';
-import 'dashboard_screen.dart';
+import 'glossary_screen.dart';
 import 'calculator_screen.dart';
 import 'exercises_screen.dart';
-import 'glossary_screen.dart';
+import 'dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final bool isDark;
