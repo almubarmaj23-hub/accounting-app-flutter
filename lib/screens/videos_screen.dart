@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../data/app_data.dart';
 
 class VideosScreen extends StatefulWidget {
@@ -12,147 +10,112 @@ class VideosScreen extends StatefulWidget {
 }
 
 class _VideosScreenState extends State<VideosScreen> {
-  Future<void> _loadData() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(() { _watchedVids = prefs.getStringList('watchedVids') ?? []; });
-  }
-  SharedPreferences? _prefs;
-
-  Future<void> _loadPrefs() async {
-    _prefs = await SharedPreferences.getInstance();
-    if (mounted) setState(() {});
-  }
-  String _selectedCat = 'الكل';
   List<String> _watched = [];
-  String _search = '';
+  String _filter = '';
 
-  final List<String> _cats = ['الكل', 'مقدمة', 'قيود', 'دفتر الأستاذ', 'القوائم', 'كورس كامل'];
+  @override
+  void initState() { super.initState(); _load(); }
 
-  Future<void> _loadWatched() async {
+  Future<void> _load() async {
     final p = await SharedPreferences.getInstance();
     if (mounted) setState(() => _watched = p.getStringList('watchedVids') ?? []);
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _loadWatched();
-    _loadPrefs();
-    _watched = _prefs?.getStringList('watchedVids') ?? const [];
+  Future<void> _markWatched(String id) async {
+    if (_watched.contains(id)) return;
+    final p = await SharedPreferences.getInstance();
+    final u = [..._watched, id];
+    await p.setStringList('watchedVids', u);
+    if (mounted) setState(() => _watched = u);
   }
 
-  Future<void> _openVideo(Map video) async {
-    final id = video['id'] as String;
-    final uri = Uri.parse('https://www.youtube.com/watch?v=$id');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!_watched.contains(id)) {
-        setState(() => _watched.add(id));
-        _prefs?.setStringList('watchedVids', _watched);
-      }
-    }
+  Future<void> _openVideo(String ytId) async {
+    final url = Uri.parse('https://www.youtube.com/watch?v=$ytId');
+    if (await canLaunchUrl(url)) launchUrl(url, mode: LaunchMode.externalApplication);
   }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = AppData.videos.where((v) {
-      final matchCat = _selectedCat == 'الكل' || v['cat'] == _selectedCat;
-      final matchSearch = _search.isEmpty || (v['title'] as String).contains(_search);
-      return matchCat && matchSearch;
+    final theme = Theme.of(context);
+    final videos = AppData.videos.where((v) {
+      if (_filter.isEmpty) return true;
+      return (v['title'] as String).contains(_filter) || (v['category'] as String).contains(_filter);
     }).toList();
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: 'ابحث في الفيديوهات...',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            ),
-            onChanged: (v) => setState(() => _search = v),
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.all(12),
+        child: TextField(
+          decoration: InputDecoration(
+            hintText: 'ابحث في الفيديوهات...',
+            prefixIcon: const Icon(Icons.search),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            filled: true, fillColor: theme.colorScheme.surfaceVariant,
+            contentPadding: EdgeInsets.zero,
           ),
+          onChanged: (v) => setState(() => _filter = v),
         ),
-        SizedBox(
-          height: 44,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: _cats.length,
-            itemBuilder: (_, i) => Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: FilterChip(
-                label: Text(_cats[i]),
-                selected: _selectedCat == _cats[i],
-                onSelected: (_) => setState(() => _selectedCat = _cats[i]),
-                selectedColor: const Color(0xFF1A73E8).withOpacity(0.2),
-                checkmarkColor: const Color(0xFF1A73E8),
-              ),
-            ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(children: [
-            Text('${filtered.length} فيديو', style: const TextStyle(fontWeight: FontWeight.w600)),
-            const SizedBox(width: 12),
-            Text('• شاهدت ${_watched.length}/17', style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w600, fontSize: 13)),
-          ]),
-        ),
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, childAspectRatio: 0.72, crossAxisSpacing: 10, mainAxisSpacing: 10),
-            itemCount: filtered.length,
-            itemBuilder: (ctx, i) {
-              final v = filtered[i];
-              final isWatched = _watched.contains(v['id']);
-              return Card(
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => _openVideo(v),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Stack(children: [
-                        CachedNetworkImage(
-                          imageUrl: 'https://img.youtube.com/vi/${v['id']}/mqdefault.jpg',
-                          height: 100, width: double.infinity, fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => Container(height: 100, color: Colors.grey[200], child: const Icon(Icons.play_circle, size: 40, color: Colors.grey)),
-                        ),
-                        Positioned.fill(child: Container(color: Colors.black26, child: const Center(child: Icon(Icons.play_circle_outline, color: Colors.white, size: 36)))),
-                        if (isWatched) Positioned(top: 6, right: 6, child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(8)),
-                          child: const Text('✓', style: TextStyle(color: Colors.white, fontSize: 11)),
-                        )),
-                      ]),
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(v['title'] as String, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 4),
-                          Row(children: [
-                            Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: const Color(0xFF1A73E8).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                              child: Text(v['cat'] as String, style: const TextStyle(color: Color(0xFF1A73E8), fontSize: 10, fontWeight: FontWeight.w600))),
-                            const Spacer(),
-                            Text(v['dur'] as String, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                          ]),
-                        ]),
-                      ),
-                    ],
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Row(children: [
+          Icon(Icons.play_circle, color: theme.colorScheme.primary, size: 18),
+          const SizedBox(width: 6),
+          Text('${_watched.length}/${AppData.videos.length} مشاهَد',
+              style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+        ]),
+      ),
+      const SizedBox(height: 8),
+      Expanded(child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: videos.length,
+        itemBuilder: (ctx, i) {
+          final v = videos[i];
+          final vid = v['ytId'] as String;
+          final done = _watched.contains(vid);
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () { _markWatched(vid); _openVideo(vid); },
+              child: Row(children: [
+                Stack(children: [
+                  Image.network(
+                    'https://img.youtube.com/vi/$vid/mqdefault.jpg',
+                    width: 120, height: 80, fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 120, height: 80,
+                      color: theme.colorScheme.primaryContainer,
+                      child: Icon(Icons.play_circle, size: 40, color: theme.colorScheme.primary),
+                    ),
                   ),
-                ),
-              ).animate().fadeIn(delay: Duration(milliseconds: i * 50));
-            },
-          ),
-        ),
-      ],
-    );
+                  if (done) Positioned(top: 4, right: 4,
+                    child: CircleAvatar(radius: 10, backgroundColor: Colors.green,
+                      child: const Icon(Icons.check, size: 12, color: Colors.white))),
+                ]),
+                Expanded(child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(v['title'] as String,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(v['category'] as String,
+                          style: TextStyle(fontSize: 10, color: theme.colorScheme.primary)),
+                    ),
+                  ]),
+                )),
+              ]),
+            ),
+          );
+        },
+      )),
+    ]);
   }
 }
